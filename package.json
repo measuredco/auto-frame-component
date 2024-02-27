@@ -1,6 +1,6 @@
 {
   "name": "@measured/auto-frame-component",
-  "version": "0.1",
+  "version": "0.0.1",
   "author": "Measured Corporation Ltd <hello@measured.co>",
   "repository": "measuredco/auto-frame-component",
   "bugs": "https://github.com/measuredco/auto-frame-component/issues",
@@ -11,7 +11,16 @@
   "scripts": {
     "lint": "eslint \"**/*.ts*\"",
     "build": "rm -rf dist && tsup index.ts",
-    "prepare": "yarn build"
+    "prepare": "yarn build",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,mdx}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,md,mdx}\"",
+    "release": "yarn release:prepare && yarn changelog && yarn release-commit",
+    "release:prepare": "git fetch --tags && conventional-recommended-bump -p angular | xargs yarn version:auto $1",
+    "release:canary": "yarn release:prepare && node scripts/get-unstable-version canary | xargs yarn version:auto $1",
+    "release-commit": "git add -u && git commit -m \"release: v${npm_package_version}\"",
+    "test": "turbo run test",
+    "version:auto": "yarn version --no-git-tag-version --new-version $1",
+    "changelog": "node scripts/create-changelog"
   },
   "files": [
     "dist"
@@ -19,12 +28,15 @@
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "conventional-recommended-bump": "^6.0.5",
     "eslint": "^7.32.0",
     "object-hash": "^3.0.0",
+    "prettier": "^2.5.1",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-frame-component": "5.2.6",
+    "standard-changelog": "^2.0.21",
     "tsup": "^6.7.0",
     "typescript": "^4.5.2"
   },

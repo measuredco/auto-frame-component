@@ -1,0 +1,36 @@
+name: Publish canary release
+on:
+  push:
+    branches:
+      - "main"
+      - "releases/**"
+
+jobs:
+  tag-and-publish-to-npm:
+    runs-on: ubuntu-latest
+
+    # Don't run on regular releases
+    if: "!startsWith(github.event.head_commit.message, 'release: ')"
+    steps:
+      - uses: actions/checkout@v4.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run release script
+        run: yarn release:canary
+
+      - name: Publish all packages
+        run: ./scripts/publish.sh canary
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    timeout-minutes: 10
