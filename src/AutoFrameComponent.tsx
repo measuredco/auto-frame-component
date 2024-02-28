@@ -5,60 +5,83 @@ import hash from "object-hash";
 const styleSelector = 'style, link[as="style"], link[rel="stylesheet"]';
 
 const collectStyles = (doc: Document) => {
-  const collected: Node[] = [];
+  const collected: HTMLElement[] = [];
 
   doc.head.querySelectorAll(styleSelector).forEach((style) => {
-    collected.push(style);
+    collected.push(style as HTMLElement);
   });
 
   return collected;
 };
 
-const CopyHostStyles = ({ children }: { children: ReactNode }) => {
+const CopyHostStyles = ({
+  children,
+  debug = false,
+}: {
+  children: ReactNode;
+  debug?: boolean;
+}) => {
   const { document: doc, window: win } = useFrame();
 
   useLayoutEffect(() => {
-    if (!win) {
+    if (!win || !doc) {
       return () => {};
     }
 
-    const add = (el: HTMLElement, contentHash: string = hash(el.outerHTML)) => {
-      if (doc?.head.querySelector(`[data-content-hash="${contentHash}"]`)) {
-        console.log(
-          `Style tag with same content (${contentHash}) already exists, skpping...`
-        );
+    const elements: { original: HTMLElement; mirror: HTMLElement }[] = [];
+
+    const lookupEl = (el: HTMLElement) =>
+      elements.findIndex((elementMap) => elementMap.original === el);
+
+    const addEl = (el: HTMLElement) => {
+      const index = lookupEl(el);
+      if (index > -1) {
+        if (debug)
+          console.log(
+            `Tried to add an element that was already mirrored. Updating instead...`
+          );
+
+        elements[index].mirror.innerText = el.innerText;
 
         return;
       }
 
-      console.log(
-        `Added style node with content hash ${contentHash} ${el.innerHTML}`
+      const elHash = hash(el.outerHTML);
+
+      // Check if any existing iframe nodes match this element
+      const existingHashes = collectStyles(doc).map((existingStyle) =>
+        hash(existingStyle.outerHTML)
       );
 
-      const frameStyles = el.cloneNode(true);
+      if (existingHashes.indexOf(elHash) > -1) {
+        if (debug)
+          console.log(
+            `iframe already contains element that is being mirrored. Skipping...`
+          );
+        return;
+      }
 
-      (frameStyles as HTMLElement).setAttribute(
-        "data-content-hash",
-        contentHash
-      );
+      const mirror = el.cloneNode(true) as HTMLElement;
+      doc.head.append(mirror);
+      elements.push({ original: el, mirror: mirror });
 
-      doc?.head.append(frameStyles);
+      if (debug) console.log(`Added style node ${el.outerHTML}`);
     };
 
-    const remove = (el: HTMLElement) => {
-      const contentHash = hash(el.textContent);
-      const frameStyles = el.cloneNode(true);
+    const removeEl = (el: HTMLElement) => {
+      const index = lookupEl(el);
+      if (index === -1) {
+        if (debug)
+          console.log(
+            `Tried to remove an element that did not exist. Skipping...`
+          );
 
-      (frameStyles as HTMLElement).setAttribute(
-        "data-content-hash",
-        contentHash
-      );
+        return;
+      }
 
-      console.log(
-        `Removing node with content hash ${contentHash} as no longer present in parent`
-      );
+      elements[index].mirror.remove();
 
-      doc?.head.querySelector(`[data-content-hash="${contentHash}"]`)?.remove();
+      if (debug) console.log(`Removed style node ${el.outerHTML}`);
     };
 
     const observer = new MutationObserver((mutations) => {
@@ -75,7 +98,7 @@ const CopyHostStyles = ({ children }: { children: ReactNode }) => {
                   : (node as HTMLElement);
 
               if (el && el.matches(styleSelector)) {
-                add(el);
+                addEl(el);
               }
             }
           });
@@ -91,7 +114,7 @@ const CopyHostStyles = ({ children }: { children: ReactNode }) => {
                   : (node as HTMLElement);
 
               if (el && el.matches(styleSelector)) {
-                remove(el);
+                removeEl(el);
               }
             }
           });
@@ -101,14 +124,14 @@ const CopyHostStyles = ({ children }: { children: ReactNode }) => {
 
     const parentDocument = win!.parent.document;
 
-    observer.observe(parentDocument.head, { childList: true, subtree: true });
-
     const collectedStyles = collectStyles(parentDocument);
 
     // Add new style tags
     collectedStyles.forEach((styleNode) => {
-      add(styleNode as HTMLElement);
+      addEl(styleNode as HTMLElement);
     });
+
+    observer.observe(parentDocument.head, { childList: true, subtree: true });
 
     return () => {
       observer.disconnect();
@@ -118,12 +141,17 @@ const CopyHostStyles = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
-export default React.forwardRef<HTMLIFrameElement, FrameComponentProps>(
-  function ({ children, ...props }: FrameComponentProps, ref) {
-    return (
-      <Frame {...props} ref={ref}>
-        <CopyHostStyles>{children}</CopyHostStyles>
-      </Frame>
-    );
-  }
-);
+export type AutoFrameProps = FrameComponentProps & {
+  debug?: boolean;
+};
+
+export default React.forwardRef<HTMLIFrameElement, AutoFrameProps>(function (
+  { children, debug, ...props }: AutoFrameProps,
+  ref
+) {
+  return (
+    <Frame {...props} ref={ref}>
+      <CopyHostStyles debug={debug}>{children}</CopyHostStyles>
+    </Frame>
+  );
+});
