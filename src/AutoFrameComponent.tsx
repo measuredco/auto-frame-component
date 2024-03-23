@@ -17,9 +17,11 @@ const collectStyles = (doc: Document) => {
 const CopyHostStyles = ({
   children,
   debug = false,
+  onStylesLoaded = () => null,
 }: {
   children: ReactNode;
   debug?: boolean;
+  onStylesLoaded?: () => void;
 }) => {
   const { document: doc, window: win } = useFrame();
 
@@ -33,7 +35,7 @@ const CopyHostStyles = ({
     const lookupEl = (el: HTMLElement) =>
       elements.findIndex((elementMap) => elementMap.original === el);
 
-    const addEl = (el: HTMLElement) => {
+    const addEl = (el: HTMLElement, onLoad: () => void = () => {}) => {
       const index = lookupEl(el);
       if (index > -1) {
         if (debug)
@@ -42,6 +44,8 @@ const CopyHostStyles = ({
           );
 
         elements[index].mirror.innerText = el.innerText;
+
+        onLoad();
 
         return;
       }
@@ -58,10 +62,15 @@ const CopyHostStyles = ({
           console.log(
             `iframe already contains element that is being mirrored. Skipping...`
           );
+
+        onLoad();
+
         return;
       }
 
       const mirror = el.cloneNode(true) as HTMLElement;
+      mirror.onload = onLoad;
+
       doc.head.append(mirror);
       elements.push({ original: el, mirror: mirror });
 
@@ -126,9 +135,18 @@ const CopyHostStyles = ({
 
     const collectedStyles = collectStyles(parentDocument);
 
+    let mountedCounter = 0;
+
     // Add new style tags
     collectedStyles.forEach((styleNode) => {
-      addEl(styleNode as HTMLElement);
+      addEl(styleNode as HTMLElement, () => {
+        console.log("load style");
+        mountedCounter += 1;
+
+        if (mountedCounter === collectedStyles.length) {
+          onStylesLoaded();
+        }
+      });
     });
 
     observer.observe(parentDocument.head, { childList: true, subtree: true });
@@ -143,15 +161,18 @@ const CopyHostStyles = ({
 
 export type AutoFrameProps = FrameComponentProps & {
   debug?: boolean;
+  onStylesLoaded?: () => void;
 };
 
 export default React.forwardRef<HTMLIFrameElement, AutoFrameProps>(function (
-  { children, debug, ...props }: AutoFrameProps,
+  { children, debug, onStylesLoaded, ...props }: AutoFrameProps,
   ref
 ) {
   return (
     <Frame {...props} ref={ref}>
-      <CopyHostStyles debug={debug}>{children}</CopyHostStyles>
+      <CopyHostStyles debug={debug} onStylesLoaded={onStylesLoaded}>
+        {children}
+      </CopyHostStyles>
     </Frame>
   );
 });

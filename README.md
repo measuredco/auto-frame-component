@@ -25,7 +25,19 @@ export function Page() {
 
 ## API
 
-Shares an API with [react-frame-component](https://github.com/ryanseddon/react-frame-component).
+Shares an API with [react-frame-component](https://github.com/ryanseddon/react-frame-component), and exposes some additional props.
+
+### debug
+
+`debug: boolean`
+
+Print debug messages when mounting styles to the console
+
+### onStylesLoaded
+
+`onStylesLoaded: function`
+
+A callback that triggers when the initial styles [are loaded](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/link#stylesheet_load_events)
 
 ## License
 
