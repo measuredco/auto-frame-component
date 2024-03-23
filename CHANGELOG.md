@@ -2,6 +2,16 @@
 
 <!--__CHANGELOG_ENTRY__-->
 
+## [0.1.1](https://github.com/measuredco/auto-frame-component/compare/v0.1.0...v0.1.1) (2024-03-23)
+
+
+### Bug Fixes
+
+* remove errornous console log ([4309330](https://github.com/measuredco/auto-frame-component/commit/4309330b005876dbefbc9ee1dd7aad41c5d667df))
+
+
+
+
 ## 0.1.0 (2024-03-23)
 
 
