@@ -140,7 +140,6 @@ const CopyHostStyles = ({
     // Add new style tags
     collectedStyles.forEach((styleNode) => {
       addEl(styleNode as HTMLElement, () => {
-        console.log("load style");
         mountedCounter += 1;
 
         if (mountedCounter === collectedStyles.length) {
