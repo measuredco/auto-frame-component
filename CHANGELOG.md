@@ -2,6 +2,21 @@
 
 <!--__CHANGELOG_ENTRY__-->
 
+## [0.1.2](https://github.com/measuredco/auto-frame-component/compare/v0.1.1...v0.1.2) (2024-04-10)
+
+
+### Bug Fixes
+
+* add explicit React displayName ([fd5dd61](https://github.com/measuredco/auto-frame-component/commit/fd5dd61a036e5587c1b70e93d5119777a8c964bd))
+
+
+### Performance Improvements
+
+* don't reload link styles already on host page ([d5251e3](https://github.com/measuredco/auto-frame-component/commit/d5251e3cb1f374d2c25c8fd0f110dde08ba82441))
+
+
+
+
 ## [0.1.1](https://github.com/measuredco/auto-frame-component/compare/v0.1.0...v0.1.1) (2024-03-23)
 
 
