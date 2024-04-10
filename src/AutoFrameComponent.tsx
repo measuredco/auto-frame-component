@@ -14,6 +14,25 @@ const collectStyles = (doc: Document) => {
   return collected;
 };
 
+const getStyleSheet = (el: HTMLElement) => {
+  return Array.from(document.styleSheets).find((ss) => ss.ownerNode === el);
+};
+
+const getStyles = (styleSheet?: CSSStyleSheet) => {
+  if (styleSheet) {
+    try {
+      return [...styleSheet.cssRules].map((rule) => rule.cssText).join("");
+    } catch (e) {
+      console.warn(
+        "Access to stylesheet %s is denied. Ignoring…",
+        styleSheet.href
+      );
+    }
+  }
+
+  return "";
+};
+
 const CopyHostStyles = ({
   children,
   debug = false,
@@ -35,7 +54,7 @@ const CopyHostStyles = ({
     const lookupEl = (el: HTMLElement) =>
       elements.findIndex((elementMap) => elementMap.original === el);
 
-    const addEl = (el: HTMLElement, onLoad: () => void = () => {}) => {
+    const addEl = async (el: HTMLElement, onLoad: () => void = () => {}) => {
       const index = lookupEl(el);
       if (index > -1) {
         if (debug)
@@ -50,12 +69,49 @@ const CopyHostStyles = ({
         return;
       }
 
-      const elHash = hash(el.outerHTML);
+      let mirror;
 
-      // Check if any existing iframe nodes match this element
-      const existingHashes = collectStyles(doc).map((existingStyle) =>
-        hash(existingStyle.outerHTML)
-      );
+      if (el.nodeName === "LINK") {
+        mirror = document.createElement("style") as HTMLStyleElement;
+        mirror.type = "text/css";
+
+        let styleSheet = getStyleSheet(el);
+
+        if (!styleSheet) {
+          await new Promise((resolve) => (el.onload = resolve));
+          styleSheet = getStyleSheet(el);
+        }
+
+        const styles = getStyles(styleSheet);
+
+        if (!styles) {
+          if (debug) {
+            console.warn(
+              `Tried to load styles for link element, but couldn't find them. Skipping...`
+            );
+          }
+
+          onLoad();
+
+          return;
+        }
+
+        mirror.innerHTML = styles;
+
+        mirror.setAttribute("data-href", el.getAttribute("href")!);
+      } else {
+        mirror = el.cloneNode(true);
+      }
+
+      const elHash = hash(mirror.outerHTML);
+
+      //   Check if any existing iframe nodes match this element
+      const existingHashes = collectStyles(doc)
+        .map(
+          (existingStyle) =>
+            existingStyle !== mirror && hash(existingStyle.outerHTML)
+        )
+        .filter(Boolean);
 
       if (existingHashes.indexOf(elHash) > -1) {
         if (debug)
@@ -68,10 +124,9 @@ const CopyHostStyles = ({
         return;
       }
 
-      const mirror = el.cloneNode(true) as HTMLElement;
       mirror.onload = onLoad;
 
-      doc.head.append(mirror);
+      doc.head.append(mirror as HTMLElement);
       elements.push({ original: el, mirror: mirror });
 
       if (debug) console.log(`Added style node ${el.outerHTML}`);
@@ -137,7 +192,6 @@ const CopyHostStyles = ({
 
     let mountedCounter = 0;
 
-    // Add new style tags
     collectedStyles.forEach((styleNode) => {
       addEl(styleNode as HTMLElement, () => {
         mountedCounter += 1;
