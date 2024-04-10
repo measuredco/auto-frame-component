@@ -217,15 +217,21 @@ export type AutoFrameProps = FrameComponentProps & {
   onStylesLoaded?: () => void;
 };
 
-export default React.forwardRef<HTMLIFrameElement, AutoFrameProps>(function (
-  { children, debug, onStylesLoaded, ...props }: AutoFrameProps,
-  ref
-) {
-  return (
-    <Frame {...props} ref={ref}>
-      <CopyHostStyles debug={debug} onStylesLoaded={onStylesLoaded}>
-        {children}
-      </CopyHostStyles>
-    </Frame>
-  );
-});
+const AutoFrameComponent = React.forwardRef<HTMLIFrameElement, AutoFrameProps>(
+  function (
+    { children, debug, onStylesLoaded, ...props }: AutoFrameProps,
+    ref
+  ) {
+    return (
+      <Frame {...props} ref={ref}>
+        <CopyHostStyles debug={debug} onStylesLoaded={onStylesLoaded}>
+          {children}
+        </CopyHostStyles>
+      </Frame>
+    );
+  }
+);
+
+AutoFrameComponent.displayName = "AutoFrameComponent";
+
+export default AutoFrameComponent;
