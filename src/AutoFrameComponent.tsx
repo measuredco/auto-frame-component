@@ -33,6 +33,8 @@ const getStyles = (styleSheet?: CSSStyleSheet) => {
   return "";
 };
 
+const defer = (fn: () => void) => setTimeout(fn, 0);
+
 const CopyHostStyles = ({
   children,
   debug = false,
@@ -162,7 +164,7 @@ const CopyHostStyles = ({
                   : (node as HTMLElement);
 
               if (el && el.matches(styleSelector)) {
-                addEl(el);
+                defer(() => addEl(el));
               }
             }
           });
@@ -178,7 +180,7 @@ const CopyHostStyles = ({
                   : (node as HTMLElement);
 
               if (el && el.matches(styleSelector)) {
-                removeEl(el);
+                defer(() => removeEl(el));
               }
             }
           });
@@ -193,13 +195,15 @@ const CopyHostStyles = ({
     let mountedCounter = 0;
 
     collectedStyles.forEach((styleNode) => {
-      addEl(styleNode as HTMLElement, () => {
-        mountedCounter += 1;
+      defer(() =>
+        addEl(styleNode as HTMLElement, () => {
+          mountedCounter += 1;
 
-        if (mountedCounter === collectedStyles.length) {
-          onStylesLoaded();
-        }
-      });
+          if (mountedCounter === collectedStyles.length) {
+            onStylesLoaded();
+          }
+        })
+      );
     });
 
     observer.observe(parentDocument.head, { childList: true, subtree: true });
