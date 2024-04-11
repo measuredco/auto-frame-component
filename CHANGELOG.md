@@ -2,6 +2,16 @@
 
 <!--__CHANGELOG_ENTRY__-->
 
+## [0.1.3](https://github.com/measuredco/auto-frame-component/compare/v0.1.2...v0.1.3) (2024-04-11)
+
+
+### Performance Improvements
+
+* don't lock main thread when adding / removing styles ([f62f5e8](https://github.com/measuredco/auto-frame-component/commit/f62f5e83d896557734306830344303bfd84aad95))
+
+
+
+
 ## [0.1.2](https://github.com/measuredco/auto-frame-component/compare/v0.1.1...v0.1.2) (2024-04-10)
 
 
