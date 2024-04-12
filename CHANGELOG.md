@@ -2,6 +2,21 @@
 
 <!--__CHANGELOG_ENTRY__-->
 
+## [0.1.5](https://github.com/measuredco/auto-frame-component/compare/v0.1.3...v0.1.5) (2024-04-12)
+
+
+### Bug Fixes
+
+* don't fail if element doesn't exist on removal ([1ac1ad1](https://github.com/measuredco/auto-frame-component/commit/1ac1ad182439af2f43e188e653adb44fdfa06f1b))
+
+
+### Performance Improvements
+
+* inject initial styles in bulk, and refactor hashing code ([0bb7efc](https://github.com/measuredco/auto-frame-component/commit/0bb7efce9996a1f1a2fd110ded94fed0a3f88ecd))
+
+
+
+
 ## [0.1.4](https://github.com/measuredco/auto-frame-component/compare/v0.1.3...v0.1.4) (2024-04-12)
 
 
