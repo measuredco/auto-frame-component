@@ -1,4 +1,4 @@
-import React, { ReactNode, useLayoutEffect } from "react";
+import React, { ReactNode, useEffect } from "react";
 import Frame, { FrameComponentProps, useFrame } from "react-frame-component";
 import hash from "object-hash";
 
@@ -46,32 +46,19 @@ const CopyHostStyles = ({
 }) => {
   const { document: doc, window: win } = useFrame();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!win || !doc) {
       return () => {};
     }
 
-    const elements: { original: HTMLElement; mirror: HTMLElement }[] = [];
+    let elements: { original: HTMLElement; mirror: HTMLElement }[] = [];
+    const hashes: Record<string, boolean> = {};
 
     const lookupEl = (el: HTMLElement) =>
       elements.findIndex((elementMap) => elementMap.original === el);
 
-    const addEl = async (el: HTMLElement, onLoad: () => void = () => {}) => {
-      const index = lookupEl(el);
-      if (index > -1) {
-        if (debug)
-          console.log(
-            `Tried to add an element that was already mirrored. Updating instead...`
-          );
-
-        elements[index].mirror.innerText = el.innerText;
-
-        onLoad();
-
-        return;
-      }
-
-      let mirror;
+    const mirrorEl = async (el: HTMLElement, onLoad: () => void = () => {}) => {
+      let mirror: HTMLStyleElement;
 
       if (el.nodeName === "LINK") {
         mirror = document.createElement("style") as HTMLStyleElement;
@@ -93,8 +80,6 @@ const CopyHostStyles = ({
             );
           }
 
-          onLoad();
-
           return;
         }
 
@@ -102,20 +87,40 @@ const CopyHostStyles = ({
 
         mirror.setAttribute("data-href", el.getAttribute("href")!);
       } else {
-        mirror = el.cloneNode(true);
+        mirror = el.cloneNode(true) as HTMLStyleElement;
+      }
+
+      mirror.onload = onLoad;
+
+      return mirror;
+    };
+
+    const addEl = async (el: HTMLElement, onLoad: () => void = () => {}) => {
+      const index = lookupEl(el);
+      if (index > -1) {
+        if (debug)
+          console.log(
+            `Tried to add an element that was already mirrored. Updating instead...`
+          );
+
+        elements[index].mirror.innerText = el.innerText;
+
+        onLoad();
+
+        return;
+      }
+
+      const mirror = await mirrorEl(el, onLoad);
+
+      if (!mirror) {
+        onLoad();
+
+        return;
       }
 
       const elHash = hash(mirror.outerHTML);
 
-      //   Check if any existing iframe nodes match this element
-      const existingHashes = collectStyles(doc)
-        .map(
-          (existingStyle) =>
-            existingStyle !== mirror && hash(existingStyle.outerHTML)
-        )
-        .filter(Boolean);
-
-      if (existingHashes.indexOf(elHash) > -1) {
+      if (hashes[elHash]) {
         if (debug)
           console.log(
             `iframe already contains element that is being mirrored. Skipping...`
@@ -125,6 +130,8 @@ const CopyHostStyles = ({
 
         return;
       }
+
+      hashes[elHash] = true;
 
       mirror.onload = onLoad;
 
@@ -145,7 +152,10 @@ const CopyHostStyles = ({
         return;
       }
 
+      const elHash = hash(el.outerHTML);
+
       elements[index].mirror.remove();
+      delete hashes[elHash];
 
       if (debug) console.log(`Removed style node ${el.outerHTML}`);
     };
@@ -194,19 +204,40 @@ const CopyHostStyles = ({
 
     let mountedCounter = 0;
 
-    collectedStyles.forEach((styleNode) => {
-      defer(() =>
-        addEl(styleNode as HTMLElement, () => {
+    Promise.all(
+      collectedStyles.map(async (styleNode) => {
+        const mirror = await mirrorEl(styleNode, () => {
           mountedCounter += 1;
-
           if (mountedCounter === collectedStyles.length) {
             onStylesLoaded();
           }
-        })
-      );
-    });
+        });
 
-    observer.observe(parentDocument.head, { childList: true, subtree: true });
+        if (!mirror) return;
+
+        elements.push({ original: styleNode, mirror });
+
+        return mirror;
+      })
+    ).then((mirrorStyles) => {
+      const filtered = mirrorStyles.filter(
+        (el) => typeof el !== "undefined"
+      ) as HTMLStyleElement[];
+
+      // Reset HTML (inside the promise) so in case running twice (i.e. for React Strict mode)
+      doc.head.innerHTML = "";
+
+      // Inject initial values in bulk
+      doc.head.append(...filtered);
+
+      observer.observe(parentDocument.head, { childList: true, subtree: true });
+
+      filtered.forEach((el) => {
+        const elHash = hash(el.outerHTML);
+
+        hashes[elHash] = true;
+      });
+    });
 
     return () => {
       observer.disconnect();
