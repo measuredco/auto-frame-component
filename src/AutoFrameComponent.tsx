@@ -154,7 +154,7 @@ const CopyHostStyles = ({
 
       const elHash = hash(el.outerHTML);
 
-      elements[index].mirror.remove();
+      elements[index]?.mirror?.remove();
       delete hashes[elHash];
 
       if (debug) console.log(`Removed style node ${el.outerHTML}`);
