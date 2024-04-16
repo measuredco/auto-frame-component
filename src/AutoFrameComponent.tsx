@@ -15,7 +15,11 @@ const collectStyles = (doc: Document) => {
 };
 
 const getStyleSheet = (el: HTMLElement) => {
-  return Array.from(document.styleSheets).find((ss) => ss.ownerNode === el);
+  return Array.from(document.styleSheets).find((ss) => {
+    const ownerNode = ss.ownerNode as HTMLLinkElement;
+
+    return ownerNode.href === (el as HTMLLinkElement).href;
+  });
 };
 
 const getStyles = (styleSheet?: CSSStyleSheet) => {
@@ -202,16 +206,9 @@ const CopyHostStyles = ({
 
     const collectedStyles = collectStyles(parentDocument);
 
-    let mountedCounter = 0;
-
     Promise.all(
       collectedStyles.map(async (styleNode) => {
-        const mirror = await mirrorEl(styleNode, () => {
-          mountedCounter += 1;
-          if (mountedCounter === collectedStyles.length) {
-            onStylesLoaded();
-          }
-        });
+        const mirror = await mirrorEl(styleNode);
 
         if (!mirror) return;
 
@@ -237,6 +234,8 @@ const CopyHostStyles = ({
 
         hashes[elHash] = true;
       });
+
+      onStylesLoaded();
     });
 
     return () => {
