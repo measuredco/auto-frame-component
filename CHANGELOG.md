@@ -2,6 +2,21 @@
 
 <!--__CHANGELOG_ENTRY__-->
 
+## [0.1.6](https://github.com/measuredco/auto-frame-component/compare/v0.1.5...v0.1.6) (2024-04-16)
+
+
+### Bug Fixes
+
+* ensure onStylesLoaded callback is fired consistently ([d298f1b](https://github.com/measuredco/auto-frame-component/commit/d298f1b36ed31611604ad4a9f3e5f91da61ba775))
+
+
+### Performance Improvements
+
+* don't load duplicate styles for link tags with matching hrefs ([ad6452f](https://github.com/measuredco/auto-frame-component/commit/ad6452fdac880b3dc202aeab006d48ab8328e0e7))
+
+
+
+
 ## [0.1.5](https://github.com/measuredco/auto-frame-component/compare/v0.1.3...v0.1.5) (2024-04-12)
 
 
