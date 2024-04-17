@@ -71,7 +71,14 @@ const CopyHostStyles = ({
         let styleSheet = getStyleSheet(el);
 
         if (!styleSheet) {
-          await new Promise((resolve) => (el.onload = resolve));
+          await new Promise<void>((resolve) => {
+            const fn = () => {
+              resolve();
+              el.removeEventListener("load", fn);
+            };
+
+            el.addEventListener("load", fn);
+          });
           styleSheet = getStyleSheet(el);
         }
 
